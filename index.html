@@ -1,1 +1,542 @@
-# -falkirk-claude-hub
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Falkirk Claude Hub</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #ffffff; --bg2: #f5f5f4; --bg3: #efede8;
+    --text: #1a1a18; --text2: #6b6b66; --text3: #a0a09a;
+    --border: rgba(0,0,0,0.12); --border2: rgba(0,0,0,0.22);
+    --radius: 10px; --radius-sm: 7px;
+    --info-bg: #e6f1fb; --info-txt: #185fa5;
+    --success-bg: #eaf3de; --success-txt: #3b6d11;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a; --bg2: #262624; --bg3: #2e2e2b;
+      --text: #f0ede8; --text2: #a0a09a; --text3: #6b6b66;
+      --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.2);
+      --info-bg: #0c2e4a; --info-txt: #7ab8ef;
+      --success-bg: #1a2e0a; --success-txt: #7ab84a;
+    }
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg3); color: var(--text); min-height: 100vh; padding: 2rem 1rem; }
+  .container { max-width: 680px; margin: 0 auto; }
+  .header { display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem; }
+  .logo { width: 40px; height: 40px; border-radius: var(--radius-sm); background: var(--info-bg); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+  .tabs { display: flex; gap: 2px; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border); }
+  .tab { padding: 8px 14px; font-size: 13px; font-weight: 500; background: none; border: none; cursor: pointer; color: var(--text2); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s; }
+  .tab.active { color: var(--text); border-bottom-color: var(--text); }
+  .tab:hover:not(.active) { color: var(--text); }
+  .filter-row { display: flex; gap: 6px; margin-bottom: 1rem; flex-wrap: wrap; }
+  .chip { padding: 4px 12px; border-radius: 99px; border: 0.5px solid var(--border2); font-size: 12px; cursor: pointer; background: none; color: var(--text2); transition: all 0.15s; }
+  .chip.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .chip:hover:not(.active) { background: var(--bg2); }
+  .tip-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 10px; transition: border-color 0.15s; }
+  .tip-card:hover { border-color: var(--border2); }
+  .tip-card.seeded { border-style: dashed; }
+  .tip-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+  .avatar { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+  .cat-badge { font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 500; margin-left: auto; }
+  .sample-badge { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: var(--bg2); color: var(--text3); border: 0.5px solid var(--border); }
+  .tip-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 5px; }
+  .tip-body { font-size: 13px; color: var(--text2); line-height: 1.65; }
+  .tip-footer { display: flex; align-items: center; gap: 12px; margin-top: 10px; padding-top: 10px; border-top: 0.5px solid var(--border); }
+  .like-btn { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text2); background: none; border: none; cursor: pointer; padding: 4px 8px; border-radius: 5px; transition: all 0.15s; }
+  .like-btn:hover { background: var(--bg2); color: #c0456a; }
+  .like-btn.liked { color: #c0456a; }
+  .time-ago { font-size: 12px; color: var(--text3); margin-left: auto; }
+  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 1.25rem; }
+  .stat-card { background: var(--bg2); border-radius: var(--radius-sm); padding: 0.875rem 1rem; }
+  .stat-label { font-size: 12px; color: var(--text2); margin-bottom: 4px; }
+  .stat-val { font-size: 22px; font-weight: 600; color: var(--text); }
+  .compose { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1.5rem; }
+  .form-row { margin-bottom: 12px; }
+  .form-row label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 4px; font-weight: 500; }
+  .form-row input, .form-row textarea, .form-row select {
+    width: 100%; padding: 8px 10px; border: 0.5px solid var(--border2); border-radius: var(--radius-sm);
+    background: var(--bg); color: var(--text); font-size: 14px; font-family: inherit;
+    outline: none; transition: border-color 0.15s;
+  }
+  .form-row input:focus, .form-row textarea:focus, .form-row select:focus { border-color: var(--info-txt); }
+  .form-row textarea { height: 80px; resize: none; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .submit-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .btn-primary { background: var(--text); color: var(--bg); border: none; padding: 8px 16px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; cursor: pointer; transition: opacity 0.15s; font-family: inherit; }
+  .btn-primary:hover { opacity: 0.8; }
+  .btn-primary:disabled { opacity: 0.4; cursor: default; }
+  .btn-secondary { padding: 8px 14px; border-radius: var(--radius-sm); border: 0.5px solid var(--border2); background: none; font-size: 13px; cursor: pointer; color: var(--text2); transition: all 0.15s; font-family: inherit; }
+  .btn-secondary:hover { background: var(--bg2); }
+  .btn-secondary:disabled { opacity: 0.4; cursor: default; }
+  .ai-response { background: var(--bg2); border-radius: var(--radius-sm); padding: 12px 14px; margin-top: 12px; font-size: 13px; color: var(--text2); line-height: 1.6; border-left: 2px solid #378add; }
+  .ai-label { font-size: 11px; color: var(--info-txt); font-weight: 600; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .spinner { display: inline-block; width: 12px; height: 12px; border: 1.5px solid var(--border2); border-top-color: var(--text2); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .empty { text-align: center; padding: 2.5rem 0; color: var(--text3); font-size: 14px; }
+  .status-msg { font-size: 13px; color: var(--text2); }
+  .loading-overlay { text-align: center; padding: 2rem 0; color: var(--text2); font-size: 14px; }
+  .seed-legend { font-size: 12px; color: var(--text3); margin-bottom: 1rem; display: none; align-items: center; gap: 6px; }
+  .seed-legend.visible { display: flex; }
+  .footnote { font-size: 11px; color: var(--text3); margin-top: 8px; }
+  .insights-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .insights-row input { flex: 1; padding: 8px 10px; border: 0.5px solid var(--border2); border-radius: var(--radius-sm); background: var(--bg); color: var(--text); font-size: 14px; font-family: inherit; outline: none; }
+  .insights-row input:focus { border-color: var(--info-txt); }
+  .setup-banner { background: var(--info-bg); border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 1.25rem; font-size: 13px; color: var(--info-txt); line-height: 1.6; }
+  .setup-banner strong { font-weight: 600; }
+  .setup-banner code { background: rgba(0,0,0,0.08); padding: 1px 5px; border-radius: 3px; font-family: monospace; font-size: 12px; }
+  .live-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--success-txt); background: var(--success-bg); padding: 2px 8px; border-radius: 99px; margin-left: 8px; vertical-align: middle; }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success-txt); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  @media (max-width: 480px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .stats-row .stat-card:last-child { grid-column: span 2; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="logo">💡</div>
+    <div>
+      <div style="font-size:20px;font-weight:600;color:var(--text)">
+        Falkirk Claude Hub
+        <span id="live-badge" class="live-badge" style="display:none"><span class="live-dot"></span>live</span>
+      </div>
+      <div style="font-size:13px;color:var(--text2)">Tips, lessons &amp; productivity hacks from your team</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" id="tab-btn-feed" onclick="switchTab('feed')">Team tips</button>
+    <button class="tab" id="tab-btn-share" onclick="switchTab('share')">Share a tip</button>
+    <button class="tab" id="tab-btn-insights" onclick="switchTab('insights')">AI insights ↗</button>
+  </div>
+
+  <!-- FEED -->
+  <div id="tab-feed">
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-label">Tips shared</div><div class="stat-val" id="stat-count">—</div></div>
+      <div class="stat-card"><div class="stat-label">Contributors</div><div class="stat-val" id="stat-contrib">—</div></div>
+      <div class="stat-card"><div class="stat-label">Top category</div><div class="stat-val" style="font-size:13px;padding-top:6px" id="stat-top">—</div></div>
+    </div>
+    <div class="filter-row">
+      <button class="chip active" onclick="filterCat('all',this)">All</button>
+      <button class="chip" onclick="filterCat('Prompting',this)">Prompting</button>
+      <button class="chip" onclick="filterCat('Productivity',this)">Productivity</button>
+      <button class="chip" onclick="filterCat('Lesson learned',this)">Lessons learned</button>
+      <button class="chip" onclick="filterCat('Use case',this)">Use cases</button>
+    </div>
+    <div id="seed-legend" class="seed-legend">
+      <span style="display:inline-block;width:14px;height:14px;border:1px dashed var(--border2);border-radius:3px;flex-shrink:0"></span>
+      Sample tips — pre-loaded to get you started. Add your own!
+    </div>
+    <div id="tips-list"><div class="loading-overlay"><span class="spinner"></span> Loading tips...</div></div>
+  </div>
+
+  <!-- SHARE -->
+  <div id="tab-share" style="display:none">
+    <div class="compose">
+      <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:1rem">✏️ Share your experience</div>
+      <div class="form-grid">
+        <div class="form-row"><label>Your name</label><input type="text" id="inp-name" placeholder="e.g. Sarah M." /></div>
+        <div class="form-row"><label>Category</label>
+          <select id="inp-cat">
+            <option>Prompting</option><option>Productivity</option><option>Lesson learned</option><option>Use case</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row"><label>Title</label><input type="text" id="inp-title" placeholder="e.g. Ask Claude to think step by step" /></div>
+      <div class="form-row"><label>Your tip or lesson</label><textarea id="inp-body" placeholder="Share what worked, what didn't, or a workflow that saved you time..."></textarea></div>
+      <div class="submit-row">
+        <button class="btn-primary" id="post-btn" onclick="submitTip()">📤 Post tip</button>
+        <button class="btn-secondary" id="polish-btn" onclick="enhanceTip()">✨ Polish with AI ↗</button>
+        <span id="polish-status" class="status-msg"></span>
+      </div>
+      <div id="enhance-out"></div>
+      <div class="footnote" id="share-footnote">👥 Tips save to your browser until Airtable is configured</div>
+    </div>
+  </div>
+
+  <!-- INSIGHTS -->
+  <div id="tab-insights" style="display:none">
+    <p style="font-size:14px;color:var(--text2);margin-bottom:1rem">Ask Claude to analyse your team's tips and surface patterns.</p>
+    <div class="insights-row">
+      <input type="text" id="insights-q" placeholder="e.g. What prompting patterns are most popular?" />
+      <button class="btn-primary" onclick="askInsights()" id="insights-btn">Ask ↗</button>
+    </div>
+    <div class="filter-row">
+      <button class="chip" onclick="setQ('Summarise the key lessons learned so far')">Summarise lessons</button>
+      <button class="chip" onclick="setQ('What prompting techniques are most popular?')">Prompting patterns</button>
+      <button class="chip" onclick="setQ('What are the top productivity hacks shared?')">Top hacks</button>
+    </div>
+    <div id="insights-out"></div>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+//  CONFIGURATION — replace these two values
+// ============================================================
+const AIRTABLE_API_KEY = 'pat3XucOQwfgXPx1l.689458701ac402c8f13205c9cab95898263b404a57fd3c08be622db8a7bcad61';
+const AIRTABLE_BASE_ID = 'app2Cm0ZjC1iUquLz';
+const AIRTABLE_TABLE   = 'Tips';
+const ANTHROPIC_API_KEY = 'YOUR_ANTHROPIC_API_KEY'; // optional — for AI features
+// ============================================================
+
+const IS_AIRTABLE_CONFIGURED = AIRTABLE_API_KEY !== 'AIRTABLE_API_KEY' && AIRTABLE_BASE_ID !== 'AIRTABLE_BASE_ID';
+const FALLBACK_KEY = 'falkirk-tips-v5';
+
+const AVATARS = [
+  ['#B5D4F4','#185FA5'],['#C0DD97','#3B6D11'],['#F4C0D1','#993556'],
+  ['#FAC775','#854F0B'],['#9FE1CB','#0F6E56'],['#CECBF6','#534AB7'],['#F5C4B3','#993C1D']
+];
+const CAT_COLORS = {
+  'Prompting':    ['#B5D4F4','#185FA5'],
+  'Productivity': ['#C0DD97','#3B6D11'],
+  'Lesson learned':['#FAC775','#854F0B'],
+  'Use case':     ['#9FE1CB','#0F6E56']
+};
+const SEED_TIPS = [
+  {id:'seed1',name:'Jamie T.',title:'Use role prompting for better answers',body:'Start messages with "You are an expert in [topic]" — quality jumps noticeably for technical questions and document drafting.',cat:'Prompting',likes:7,liked:false,ts:Date.now()-7200000,seeded:true},
+  {id:'seed2',name:'Priya S.',title:'Paste the whole email thread, not just the last message',body:'I used to copy only the latest email but Claude misses context. Pasting the full thread gets much better replies, especially for sensitive communications.',cat:'Lesson learned',likes:11,liked:false,ts:Date.now()-18000000,seeded:true},
+  {id:'seed3',name:'Mark D.',title:'Ask for three options, then pick one',body:'Instead of "write this report", ask for three different opening paragraphs. Forces variety and you end up with something better than any single attempt.',cat:'Productivity',likes:9,liked:false,ts:Date.now()-36000000,seeded:true},
+  {id:'seed4',name:'Leila B.',title:'Meeting minutes in under 2 minutes',body:'Copy and paste meeting notes or a transcript and ask Claude to structure it into minutes with action items. Saves 20+ minutes per meeting.',cat:'Use case',likes:14,liked:false,ts:Date.now()-86400000,seeded:true},
+  {id:'seed5',name:'Tom H.',title:'Tell Claude what NOT to do',body:'Adding constraints like "do not use bullet points" or "keep it under 100 words" gets cleaner output than trying to describe the format positively.',cat:'Prompting',likes:6,liked:false,ts:Date.now()-108000000,seeded:true}
+];
+
+let tips = [];
+let currentCat = 'all';
+
+// ── Airtable helpers ──────────────────────────────────────────
+
+const AT_URL = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_TABLE)}`;
+const AT_HEADERS = {
+  'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+  'Content-Type': 'application/json'
+};
+
+async function atFetch(path='', options={}) {
+  const res = await fetch(AT_URL + path, { ...options, headers: AT_HEADERS });
+  if (!res.ok) throw new Error(`Airtable ${res.status}: ${await res.text()}`);
+  return res.json();
+}
+
+function recordToTip(rec) {
+  const f = rec.fields;
+  return {
+    id: f.AirtableId || rec.id,
+    _recId: rec.id,
+    name: f.Name || '',
+    title: f.Title || '',
+    body: f.Body || '',
+    cat: f.Category || 'Prompting',
+    likes: f.Likes || 0,
+    liked: false,
+    ts: f.Timestamp || Date.now(),
+    seeded: !!f.Seeded
+  };
+}
+
+async function loadFromAirtable() {
+  let allRecords = [];
+  let offset = null;
+  do {
+    const params = new URLSearchParams({ sort: JSON.stringify([{field:'Timestamp',direction:'desc'}]) });
+    if (offset) params.set('offset', offset);
+    const data = await atFetch('?' + params.toString());
+    allRecords = allRecords.concat(data.records || []);
+    offset = data.offset;
+  } while (offset);
+
+  if (allRecords.length === 0) {
+    // Seed Airtable on first use
+    await seedAirtable();
+    return;
+  }
+  tips = allRecords.map(recordToTip);
+  // Restore liked state from localStorage
+  const liked = JSON.parse(localStorage.getItem('falkirk-liked') || '{}');
+  tips.forEach(t => { if (liked[t.id]) t.liked = true; });
+}
+
+async function seedAirtable() {
+  const records = SEED_TIPS.map(t => ({
+    fields: {
+      Name: t.name, Title: t.title, Body: t.body,
+      Category: t.cat, Likes: t.likes,
+      Seeded: true, Timestamp: t.ts
+    }
+  }));
+  // Airtable max 10 per request
+  for (let i = 0; i < records.length; i += 10) {
+    await atFetch('', {
+      method: 'POST',
+      body: JSON.stringify({ records: records.slice(i, i+10) })
+    });
+  }
+  await loadFromAirtable();
+}
+
+async function saveToAirtable(tip) {
+  const body = {
+    fields: {
+      Name: tip.name, Title: tip.title, Body: tip.body,
+      Category: tip.cat, Likes: tip.likes,
+      Seeded: false, Timestamp: tip.ts
+    }
+  };
+  const data = await atFetch('', { method: 'POST', body: JSON.stringify({ records: [body] }) });
+  const rec = data.records[0];
+  tip._recId = rec.id;
+  tip.id = rec.fields.AirtableId || rec.id;
+  return tip;
+}
+
+async function updateLikesInAirtable(tip) {
+  if (!tip._recId) return;
+  await atFetch(`/${tip._recId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ fields: { Likes: tip.likes } })
+  });
+}
+
+// ── localStorage fallback ─────────────────────────────────────
+
+function loadFromLocal() {
+  try {
+    const stored = localStorage.getItem(FALLBACK_KEY);
+    tips = stored ? JSON.parse(stored) : SEED_TIPS.map(t => ({...t}));
+    if (!stored) localStorage.setItem(FALLBACK_KEY, JSON.stringify(tips));
+  } catch(e) {
+    tips = SEED_TIPS.map(t => ({...t}));
+  }
+}
+
+function saveToLocal() {
+  try { localStorage.setItem(FALLBACK_KEY, JSON.stringify(tips)); } catch(e) {}
+}
+
+// ── Init ──────────────────────────────────────────────────────
+
+async function loadTips() {
+  document.getElementById('tips-list').innerHTML = '<div class="loading-overlay"><span class="spinner"></span> Loading tips...</div>';
+  if (IS_AIRTABLE_CONFIGURED) {
+    document.getElementById('setup-banner').style.display = 'none';
+    document.getElementById('live-badge').style.display = 'inline-flex';
+    document.getElementById('share-footnote').textContent = '👥 Tips are shared live with your whole team via Airtable';
+    try {
+      await loadFromAirtable();
+    } catch(e) {
+      console.warn('Airtable failed, falling back to local:', e);
+      loadFromLocal();
+    }
+  } else {
+    loadFromLocal();
+  }
+  renderTips();
+}
+
+// ── Render ────────────────────────────────────────────────────
+
+function timeAgo(ts) {
+  const m = Math.round((Date.now()-ts)/60000);
+  if (m < 2) return 'just now';
+  if (m < 60) return m + 'm ago';
+  const h = Math.round(m/60);
+  if (h < 24) return h + 'h ago';
+  return Math.round(h/24) + 'd ago';
+}
+
+function initials(name) {
+  return name.split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2);
+}
+
+function avatarColor(name) {
+  let h = 0;
+  for (let c of name) h = (h*31 + c.charCodeAt(0)) % AVATARS.length;
+  return AVATARS[h];
+}
+
+function renderTips() {
+  const list = document.getElementById('tips-list');
+  const filtered = currentCat === 'all' ? tips : tips.filter(t => t.cat === currentCat);
+  const hasSeed = filtered.some(t => t.seeded);
+  document.getElementById('seed-legend').classList.toggle('visible', hasSeed);
+
+  if (!filtered.length) {
+    list.innerHTML = '<div class="empty">😊<br><br>No tips yet in this category — be the first!</div>';
+    updateStats(); return;
+  }
+  const sorted = [...filtered].sort((a,b) => b.ts - a.ts);
+  list.innerHTML = sorted.map(t => {
+    const [cbg, ctxt] = CAT_COLORS[t.cat] || ['#D3D1C7','#5F5E5A'];
+    const [abg, atxt] = avatarColor(t.name);
+    const sampleBadge = t.seeded ? '<span class="sample-badge">sample</span>' : '';
+    return `<div class="tip-card${t.seeded?' seeded':''}">
+      <div class="tip-meta">
+        <div class="avatar" style="background:${abg};color:${atxt}">${initials(t.name)}</div>
+        <span style="font-size:12px;color:var(--text2)">${t.name}</span>
+        <span class="cat-badge" style="background:${cbg};color:${ctxt};margin-left:auto">${t.cat}</span>
+        ${sampleBadge}
+      </div>
+      <div class="tip-title">${t.title}</div>
+      <div class="tip-body">${t.body}</div>
+      <div class="tip-footer">
+        <button class="like-btn${t.liked?' liked':''}" onclick="toggleLike('${t.id}')">
+          ♥ ${t.likes}
+        </button>
+        <span class="time-ago">${t.seeded ? 'sample tip' : timeAgo(t.ts)}</span>
+      </div>
+    </div>`;
+  }).join('');
+  updateStats();
+}
+
+function updateStats() {
+  const real = tips.filter(t => !t.seeded);
+  document.getElementById('stat-count').textContent = real.length;
+  document.getElementById('stat-contrib').textContent = new Set(real.map(t=>t.name)).size;
+  const cc = {};
+  real.forEach(t => cc[t.cat] = (cc[t.cat]||0)+1);
+  const top = Object.entries(cc).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('stat-top').textContent = top ? top[0] : '—';
+}
+
+async function toggleLike(id) {
+  const t = tips.find(x => x.id === id);
+  if (!t) return;
+  t.liked = !t.liked;
+  t.likes += t.liked ? 1 : -1;
+
+  // Persist liked state locally (per browser)
+  const liked = JSON.parse(localStorage.getItem('falkirk-liked') || '{}');
+  if (t.liked) liked[t.id] = true; else delete liked[t.id];
+  localStorage.setItem('falkirk-liked', JSON.stringify(liked));
+
+  if (IS_AIRTABLE_CONFIGURED) {
+    try { await updateLikesInAirtable(t); } catch(e) { console.warn('Like sync failed', e); }
+  } else {
+    saveToLocal();
+  }
+  renderTips();
+}
+
+function filterCat(cat, el) {
+  currentCat = cat;
+  document.querySelectorAll('.filter-row .chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderTips();
+}
+
+function switchTab(tab) {
+  ['feed','share','insights'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t === tab ? '' : 'none';
+    document.getElementById('tab-btn-'+t).classList.toggle('active', t === tab);
+  });
+  if (tab === 'feed') loadTips();
+}
+
+async function submitTip() {
+  const name  = document.getElementById('inp-name').value.trim();
+  const title = document.getElementById('inp-title').value.trim();
+  const body  = document.getElementById('inp-body').value.trim();
+  const cat   = document.getElementById('inp-cat').value;
+  if (!name || !title || !body) { alert('Please fill in your name, a title, and your tip.'); return; }
+
+  const btn = document.getElementById('post-btn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+
+  let newTip = { id:'tip-'+Date.now(), name, title, body, cat, likes:0, liked:false, ts:Date.now(), seeded:false };
+
+  if (IS_AIRTABLE_CONFIGURED) {
+    try {
+      newTip = await saveToAirtable(newTip);
+    } catch(e) {
+      alert('Could not save to Airtable: ' + e.message);
+      btn.disabled = false; btn.textContent = '📤 Post tip';
+      return;
+    }
+  } else {
+    tips.unshift(newTip);
+    saveToLocal();
+  }
+
+  if (IS_AIRTABLE_CONFIGURED) tips.unshift(newTip);
+  document.getElementById('inp-name').value = '';
+  document.getElementById('inp-title').value = '';
+  document.getElementById('inp-body').value = '';
+  document.getElementById('enhance-out').innerHTML = '';
+  btn.disabled = false; btn.textContent = '📤 Post tip';
+  switchTab('feed');
+}
+
+// ── AI features ───────────────────────────────────────────────
+
+async function callClaude(system, userMsg) {
+  if (ANTHROPIC_API_KEY === 'YOUR_ANTHROPIC_API_KEY') {
+    return 'To enable AI features, add your Anthropic API key to the ANTHROPIC_API_KEY variable in this file.';
+  }
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version':'2023-06-01' },
+    body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:500, system, messages:[{role:'user',content:userMsg}] })
+  });
+  const data = await res.json();
+  const block = data.content && data.content.find(c => c.type==='text');
+  return block ? block.text : 'No response.';
+}
+
+async function enhanceTip() {
+  const title = document.getElementById('inp-title').value.trim();
+  const body  = document.getElementById('inp-body').value.trim();
+  if (!title && !body) { alert('Add a title or tip first.'); return; }
+  const btn = document.getElementById('polish-btn');
+  const status = document.getElementById('polish-status');
+  btn.disabled = true; status.innerHTML = '<span class="spinner"></span> Polishing...';
+  document.getElementById('enhance-out').innerHTML = '';
+  try {
+    const improved = await callClaude(
+      "You help Falkirk Council employees share Claude tips. Polish the tip to be clear, specific and actionable. Keep the author's voice. Return only the improved tip text (2-4 sentences), no preamble.",
+      `Title: ${title}\nTip: ${body}`
+    );
+    document.getElementById('inp-body').value = improved;
+    document.getElementById('enhance-out').innerHTML = '<div class="ai-response"><div class="ai-label">AI polished</div>Updated above — edit further if you like.</div>';
+  } catch(e) { status.textContent = 'Error: ' + e.message; }
+  btn.disabled = false; status.innerHTML = '';
+}
+
+function setQ(q) { document.getElementById('insights-q').value = q; }
+
+async function askInsights() {
+  const q = document.getElementById('insights-q').value.trim();
+  if (!q) return;
+  const btn = document.getElementById('insights-btn');
+  const out = document.getElementById('insights-out');
+  btn.disabled = true; btn.textContent = '...';
+  out.innerHTML = '<div class="ai-response"><div class="ai-label">Claude is thinking</div><span class="spinner"></span></div>';
+  const realTips = tips.filter(t => !t.seeded);
+  const tipsSummary = realTips.length
+    ? realTips.map(t=>`[${t.cat}] "${t.title}" by ${t.name}: ${t.body}`).join('\n')
+    : 'No team tips posted yet.';
+  try {
+    const answer = await callClaude(
+      "You help Falkirk Council analyse their team's Claude tips. Give concise, practical insights in plain prose. No markdown headers or bullet points.",
+      `Team tips:\n${tipsSummary}\n\nQuestion: ${q}`
+    );
+    out.innerHTML = `<div class="ai-response"><div class="ai-label">Claude</div>${answer}</div>`;
+  } catch(e) { out.innerHTML = `<div class="ai-response">Error: ${e.message}</div>`; }
+  btn.disabled = false; btn.textContent = 'Ask ↗';
+}
+
+// ── Boot ──────────────────────────────────────────────────────
+loadTips();
+</script>
+</body>
+</html>
+
