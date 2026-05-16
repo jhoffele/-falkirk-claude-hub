@@ -183,7 +183,7 @@
 // ============================================================
 //  CONFIGURATION — replace these two values
 // ============================================================
-const AIRTABLE_API_KEY = 'patXZIMPT7snYVtIz.816e39392c01cae860123a37c529b164b3123973f7e1e8c0c07a290bba5aa209';
+const AIRTABLE_API_KEY = 'pat4Dp2GEQutpwLcb.6e401e79011bc97fc942c1e71b45711599997ff4caa04fd5e5cf2b421bae80bd';
 const AIRTABLE_BASE_ID = 'app2Cm0ZjC1iUquLz';
 const AIRTABLE_TABLE   = 'Tips';
 const ANTHROPIC_API_KEY = 'YOUR_ANTHROPIC_API_KEY'; // optional — for AI features
@@ -247,7 +247,7 @@ async function loadFromAirtable() {
   let allRecords = [];
   let offset = null;
   do {
-    const params = new URLSearchParams({ sort: JSON.stringify([{field:'Timestamp',direction:'desc'}]) });
+    const params = new URLSearchParams();
     if (offset) params.set('offset', offset);
     const data = await atFetch('?' + params.toString());
     allRecords = allRecords.concat(data.records || []);
@@ -334,6 +334,7 @@ async function loadTips() {
       await loadFromAirtable();
     } catch(e) {
       console.warn('Airtable failed, falling back to local:', e);
+      document.getElementById('tips-list').innerHTML = '<div class="loading-overlay" style="color:red">Airtable error: ' + e.message + '</div>';
       loadFromLocal();
     }
   } else {
@@ -539,4 +540,3 @@ loadTips();
 </script>
 </body>
 </html>
-
